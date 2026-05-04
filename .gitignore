@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+.DS_Store
+.vitest-cache/
+*.log
+.idea/
+.vscode/
+.claude/
