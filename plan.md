@@ -7,7 +7,7 @@
 - **Name:** PickleDesk
 - **Repo:** `pickle-desk`
 - **Tagline:** *Your club's pickleball session manager*
-- **Stack:** HTML + ES modules + CSS, zero runtime dependencies (Vitest/happy-dom are devDependencies only), GitHub Pages ready
+- **Stack:** Svelte 5 + Vite + plain CSS, deployed as static files to GitHub Pages. Vitest + happy-dom for tests.
 - **License:** MIT
 
 ---
@@ -28,10 +28,17 @@ pickle-desk/
 │   │   ├── duplicates.js
 │   │   ├── storage.js
 │   │   ├── session.js
+│   │   ├── leaderboard.js
+│   │   ├── players.js
 │   │   └── CLAUDE.md
 │   ├── ui/
-│   │   ├── render.js
+│   │   ├── App.svelte
+│   │   ├── mount.js
 │   │   ├── screens/
+│   │   │   ├── NewSession.svelte
+│   │   │   ├── Session.svelte
+│   │   │   ├── ResumePrompt.svelte
+│   │   │   └── History.svelte
 │   │   └── CLAUDE.md
 │   └── app.js
 ├── tests/
@@ -45,7 +52,8 @@ pickle-desk/
 ├── index.html
 ├── style.css
 ├── package.json
-├── vitest.config.js
+├── vite.config.js
+├── svelte.config.js
 ├── CLAUDE.md
 ├── CONTRIBUTING.md
 ├── CODE_OF_CONDUCT.md
@@ -54,9 +62,9 @@ pickle-desk/
 └── plan.md
 ```
 
-**Module loading:** `index.html` loads `src/app.js` via `<script type="module">`. Native ES modules — no bundler, GitHub Pages serves the repo as-is.
+**Module loading:** `index.html` is the Vite entry. `src/app.js` mounts the root Svelte component (`src/ui/App.svelte`) into `#app`. Vite bundles to `dist/`, which GitHub Pages serves.
 
-**Dependency rule:** zero *runtime* dependencies. Test tooling (Vitest, happy-dom) lives only in `devDependencies` and never ships to Pages.
+**Dependency rule:** runtime dependencies are allowed when they pull weight (Svelte). The pure-logic layer in `src/logic/` stays framework-agnostic — it imports nothing from Svelte, Vite, or the DOM, so its tests run in plain Vitest with no component runtime.
 
 ---
 
@@ -289,7 +297,7 @@ Everyone earns points for playing. Winners earn more. Close losses are protected
 
 CLAUDE.md files are living documentation that AI assistants and contributors read on entry. They describe how the code is organised so future changes stay coherent without re-deriving structure from a full read.
 
-- **Root `CLAUDE.md`** — project purpose, how to run locally, how to run tests, key architectural rules (pure logic vs DOM split, ESM modules, zero runtime deps, TDD discipline), pointer to each area's CLAUDE.md.
+- **Root `CLAUDE.md`** — project purpose, how to run locally, how to run tests, key architectural rules (pure logic vs UI split, Svelte 5 + Vite, framework-agnostic logic layer, TDD discipline), pointer to each area's CLAUDE.md.
 - **`src/logic/CLAUDE.md`** — covers pure-function modules. Lists each module's responsibility, public API, and invariants. No DOM here, ever.
 - **`src/ui/CLAUDE.md`** — covers DOM rendering and event handlers. Notes which screen renders from which slice of state and how events flow back into logic.
 - **`tests/CLAUDE.md`** — testing conventions: file naming, what gets unit-tested vs integration-tested, the red-green-refactor rule.
@@ -329,10 +337,10 @@ CLAUDE.md files are living documentation that AI assistants and contributors rea
 
 ### Deployment (GitHub Pages + CI)
 
-- **Hosting:** GitHub Pages, served from `main` branch root. `index.html` loads ES modules from `src/`. **No build step.**
-- **URL:** `https://<github-user>.github.io/pickle-desk/`.
+- **Hosting:** GitHub Pages. The site is built by Vite (`npm run build` → `dist/`) and the `dist/` folder is what gets served.
+- **URL:** `https://<github-user>.github.io/pickle-desk/`. Vite's `base` is set to `/pickle-desk/` for production builds; the dev server uses `/`.
 - **CI** (`.github/workflows/ci.yml`): on push and PR — `npm ci` → `npm test`. PR merges blocked on red.
-- **Pages workflow:** unnecessary while there is no build step. If a bundler is added later, switch to a Pages action that publishes `dist/`.
+- **Pages workflow** (`.github/workflows/deploy.yml`): on push to `main` — `npm ci` → `npm run build` → publish `dist/` via `actions/deploy-pages`. Pages source must be set to "GitHub Actions" in repo settings.
 - **Storage versioning (future-proofing):** every `localStorage` key carries a `schemaVersion` field; migrations live in `src/logic/storage.js` and are tested. Out-of-scope for v1 but the field ships in v1 to avoid a painful retrofit.
 
 ---
@@ -343,7 +351,7 @@ Each phase: list logical sub-steps → write failing test → implement → refa
 
 | Phase | Tests first | Then implementation |
 |---|---|---|
-| 0 | (scaffold) | `package.json`, Vitest + happy-dom, CI workflow, LICENSE, root + `tests/` CLAUDE.md, README skeleton, empty `index.html` loading `src/app.js` |
+| 0 | (scaffold) | `package.json` (Vite + Svelte 5 + Vitest + happy-dom), `vite.config.js`, `svelte.config.js`, CI + Pages deploy workflows, LICENSE, root + `tests/` CLAUDE.md, README skeleton, `index.html` as Vite entry mounting `src/app.js` |
 | 1 | Storage round-trip; player name normalisation; schemaVersion stamping | `src/logic/storage.js` + master player list module |
 | 2 | Duplicate detection: exact match, casing, fuzzy near-miss, in-roster collision | New-session screen with chip grid + add-player input |
 | 3 | Queue rotation; court assignment; odd-player handling; team formation (random + manual) | Courts + queue UI |

@@ -10,7 +10,8 @@
 - [ ] `npm test` passes locally
 - [ ] Relevant `CLAUDE.md` updated if a public API, responsibility, or
       architectural rule changed
-- [ ] No runtime dependencies added (devDependencies only)
+- [ ] If a runtime dependency was added, it pulls its weight (justified in summary)
+- [ ] `src/logic/` stays framework-agnostic (no Svelte/DOM imports)
 
 ## Notes for reviewers
 

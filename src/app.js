@@ -1,4 +1,5 @@
-import { mount } from './ui/mount.js';
+import '../style.css';
+import { mount } from './ui/mount.svelte.js';
 
 const root = document.getElementById('app');
 if (root) {

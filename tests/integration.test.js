@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mount } from '../src/ui/mount.js';
+import { mount } from '../src/ui/mount.svelte.js';
 
 function memoryStorage() {
   const store = new Map();

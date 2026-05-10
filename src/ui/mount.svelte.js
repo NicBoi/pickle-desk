@@ -1,6 +1,7 @@
-// Bootstraps the app into a root element. Loads master player list
-// + active session from storage, picks the active screen, and renders.
-// Returns a ctx handle so tests can introspect.
+// App entry point. Loads master player list + active session from
+// storage, builds initial state, picks the active screen, and renders.
+// For now, all screens are vanilla DOM while we work out Svelte+testing.
+// Svelte components will be integrated incrementally.
 
 import { read, write, KEYS } from '../logic/storage.js';
 import { isSameDay } from '../logic/session.js';
@@ -84,6 +85,7 @@ export function mount(root, opts = {}) {
 }
 
 function renderCurrent(root, ctx) {
+  while (root.firstChild) root.removeChild(root.firstChild);
   if (ctx.state.screen === 'session') {
     renderSession(root, ctx);
   } else if (ctx.state.screen === 'resume-prompt') {

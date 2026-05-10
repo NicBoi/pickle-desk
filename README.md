@@ -2,10 +2,10 @@
 
 > Your club's pickleball session manager.
 
-PickleDesk is a tiny, dependency-free web app that runs entirely in the
-browser. Set up a session, add players, and PickleDesk handles the queue,
-courts, scores, ratings, and leaderboard. Data lives in `localStorage` —
-no server, no accounts.
+PickleDesk is a static web app (Svelte 5 + Vite) that runs entirely in
+the browser. Set up a session, add players, and PickleDesk handles the
+queue, courts, scores, ratings, and leaderboard. Data lives in
+`localStorage` — no server, no accounts.
 
 ## Status
 
@@ -34,19 +34,21 @@ _Coming soon — once GitHub Pages is wired up._
 
 ## Self-hosting
 
-PickleDesk is static. Fork the repo and enable GitHub Pages on the `main`
-branch — the live URL will be `https://<your-user>.github.io/pickle-desk/`.
-Any static host works.
+PickleDesk builds to a static `dist/` folder. Fork the repo, set GitHub
+Pages source to "GitHub Actions" in repo settings, and push to `main` —
+the included workflow builds with Vite and publishes to
+`https://<your-user>.github.io/pickle-desk/`. Any static host works for
+the built `dist/` output.
 
 ## Local development
 
 ```
 npm install
+npm run dev        # local dev server with HMR
+npm run build      # build static assets to dist/
+npm run preview    # serve the built dist/ locally
 npm test           # run the test suite
 ```
-
-To run the app locally, open `index.html` in any modern browser, or serve
-the directory with a static server (e.g. `npx serve`).
 
 ## Contributing
 

@@ -2,6 +2,8 @@ node_modules/
 coverage/
 .DS_Store
 .vitest-cache/
+dist/
+.svelte-kit/
 *.log
 .idea/
 .vscode/
