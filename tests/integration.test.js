@@ -143,6 +143,9 @@ describe('session flow (after start)', () => {
     form.querySelector('[data-field="score-b"]').value = '7';
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 
+    // Confirm the pending score
+    document.querySelector('[data-action="confirm-round"]').click();
+
     expect(document.querySelectorAll('[data-queue-item]').length).toBe(4);
     expect(document.querySelector('article[data-court="0"]')).not.toBeNull();
     expect(
@@ -169,6 +172,9 @@ describe('session flow (after start)', () => {
     form.querySelector('[data-field="score-a"]').value = '11';
     form.querySelector('[data-field="score-b"]').value = '4';
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    // Confirm the pending score
+    document.querySelector('[data-action="confirm-round"]').click();
 
     document.querySelector('[data-action="switch-tab"][data-tab="leaderboard"]').click();
     rows = document.querySelectorAll('[data-leaderboard-row]');
@@ -351,6 +357,9 @@ describe('session flow (after start)', () => {
     form.querySelector('[data-field="score-b"]').value = '4';
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 
+    // Confirm the pending score
+    document.querySelector('[data-action="confirm-round"]').click();
+
     // Archive via "End & start new", then open history from new-session.
     document.querySelector('[data-action="new-session"]').click();
     document.querySelector('[data-action="open-history"]').click();
@@ -377,6 +386,9 @@ describe('session flow (after start)', () => {
     form.querySelector('[data-field="score-a"]').value = '11';
     form.querySelector('[data-field="score-b"]').value = '4';
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    // Confirm the pending score
+    document.querySelector('[data-action="confirm-round"]').click();
 
     const session = ctx.state.activeSession;
     expect(session.games.length).toBe(1);

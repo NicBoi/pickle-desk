@@ -5,6 +5,8 @@ import {
   fillCourts,
   freeCourt,
   substitutePlayer,
+  buildPairingHistory,
+  fillCourtsSmartly,
 } from '../src/logic/queue.js';
 import { createPlayer } from '../src/logic/players.js';
 
@@ -177,5 +179,133 @@ describe('substitutePlayer', () => {
     };
     const next = substitutePlayer(session, 0, 'id_1', 'id_3');
     expect(next).toBeNull();
+  });
+});
+
+describe('buildPairingHistory', () => {
+  it('returns empty map for empty games', () => {
+    const hist = buildPairingHistory([]);
+    expect(hist.size).toBe(0);
+  });
+
+  it('counts partnerships from a single game', () => {
+    const games = [
+      {
+        teamA: ['id_1', 'id_2'],
+        teamB: ['id_3', 'id_4'],
+      },
+    ];
+    const hist = buildPairingHistory(games);
+    expect(hist.get('id_1')?.get('id_2')).toBe(1);
+    expect(hist.get('id_2')?.get('id_1')).toBe(1);
+    expect(hist.get('id_3')?.get('id_4')).toBe(1);
+    expect(hist.get('id_4')?.get('id_3')).toBe(1);
+    expect(hist.get('id_1')?.get('id_3')).toBeUndefined();
+  });
+
+  it('accumulates partnership counts across games', () => {
+    const games = [
+      { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] },
+      { teamA: ['id_1', 'id_2'], teamB: ['id_5', 'id_6'] },
+    ];
+    const hist = buildPairingHistory(games);
+    expect(hist.get('id_1')?.get('id_2')).toBe(2);
+  });
+});
+
+describe('fillCourtsSmartly', () => {
+  it('fills idle courts from the queue', () => {
+    const session = {
+      courts: [null, null],
+      queue: ['id_1', 'id_2', 'id_3', 'id_4', 'id_5', 'id_6', 'id_7', 'id_8'],
+      players: ROSTER,
+      games: [],
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    expect(next.courts[0]).not.toBeNull();
+    expect(next.courts[1]).not.toBeNull();
+    expect(next.queue).toEqual([]);
+  });
+
+  it('does not touch courts that are already assigned', () => {
+    const occupied = { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] };
+    const session = {
+      courts: [occupied, null],
+      queue: ['id_5', 'id_6', 'id_7', 'id_8'],
+      players: ROSTER,
+      games: [],
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    expect(next.courts[0]).toBe(occupied);
+    expect(next.courts[1]).not.toBeNull();
+  });
+
+  it('returns unchanged session when no idle courts', () => {
+    const session = {
+      courts: [
+        { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] },
+        { teamA: ['id_5', 'id_6'], teamB: ['id_7', 'id_8'] },
+      ],
+      queue: ['id_9'],
+      players: ROSTER,
+      games: [],
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    expect(next).toBe(session);
+  });
+
+  it('returns unchanged session when fewer than 4 queue players', () => {
+    const session = {
+      courts: [null],
+      queue: ['id_1', 'id_2', 'id_3'],
+      players: ROSTER,
+      games: [],
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    expect(next).toBe(session);
+  });
+
+  it('avoids repeated partnerships when possible', () => {
+    const games = [
+      { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] },
+    ];
+    const session = {
+      courts: [null],
+      queue: ['id_1', 'id_2', 'id_3', 'id_4'],
+      players: ROSTER.slice(0, 4),
+      games,
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    const court = next.courts[0];
+    expect(court).not.toBeNull();
+    // Verify that 1 and 2 are not partnered, and 3 and 4 are not partnered
+    const team1Ids = court.teamA.concat(court.teamB);
+    const isSame12 = (court.teamA.includes('id_1') && court.teamA.includes('id_2')) ||
+                     (court.teamB.includes('id_1') && court.teamB.includes('id_2'));
+    const isSame34 = (court.teamA.includes('id_3') && court.teamA.includes('id_4')) ||
+                     (court.teamB.includes('id_3') && court.teamB.includes('id_4'));
+    expect(isSame12).toBe(false);
+    expect(isSame34).toBe(false);
+  });
+
+  it('fills multiple courts and distributes players across groups', () => {
+    const session = {
+      courts: [null, null],
+      queue: ['id_1', 'id_2', 'id_3', 'id_4', 'id_5', 'id_6', 'id_7', 'id_8'],
+      players: ROSTER.slice(0, 8),
+      games: [],
+    };
+    const next = fillCourtsSmartly(session, { rng: () => 0 });
+    const court0 = next.courts[0];
+    const court1 = next.courts[1];
+    expect(court0).not.toBeNull();
+    expect(court1).not.toBeNull();
+    const players0 = new Set([...court0.teamA, ...court0.teamB]);
+    const players1 = new Set([...court1.teamA, ...court1.teamB]);
+    // Verify no player is on both courts
+    for (const p of players0) {
+      expect(players1.has(p)).toBe(false);
+    }
+    expect(next.queue).toEqual([]);
   });
 });

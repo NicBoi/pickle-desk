@@ -29,12 +29,16 @@ same PR as the module lands.)_
 - `queue.js` — queue rotation, court assignment, team formation.
   **Public API:** `assignTeams(four, rng)`,
   `startSession(draft, opts)`, `fillCourts(session, opts)`,
-  `freeCourt(session, courtIndex)`,
-  `substitutePlayer(session, courtIndex, playerIdToRemove, playerIdToAdd)`.
+  `fillCourtsSmartly(session, opts)`, `freeCourt(session, courtIndex)`,
+  `substitutePlayer(session, courtIndex, playerIdToRemove, playerIdToAdd)`,
+  `buildPairingHistory(games)`.
   Court state is `null` (idle) or `{ teamA, teamB }` where each team is
   a 2-tuple of player ids; the queue stores ids only and renderers look
-  up names from `session.players`. Substitution swaps a player on court
-  with one from the queue, returning null if either is invalid.
+  up names from `session.players`. `fillCourtsSmartly` uses game history
+  to minimize repeated team partnerships. `buildPairingHistory` derives
+  a partnership-frequency map from `session.games`. Substitution swaps a
+  player on court with one from the queue, returning null if either is
+  invalid.
 - `duplicates.js` — duplicate detection.
   **Public API:** `findExactMatch(name, players)`,
   `findSimilar(name, players)`,

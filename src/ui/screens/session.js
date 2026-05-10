@@ -3,7 +3,7 @@
 // every other zone here, is rebuilt on each refresh so a rename or
 // banner change shows up everywhere it needs to.
 
-import { fillCourts, substitutePlayer } from '../../logic/queue.js';
+import { fillCourts, fillCourtsSmartly, substitutePlayer } from '../../logic/queue.js';
 import { recordGame, validateScore } from '../../logic/rating.js';
 import { buildLeaderboard } from '../../logic/leaderboard.js';
 import {
@@ -46,6 +46,7 @@ export function renderSession(root, ctx) {
   let leaderboardSort = 'rating';
   let modalCourtIndex = null;
   let modalPlayerToRemove = null;
+  let pendingScores = new Map();
 
   function setTab(name) {
     activeTab = name;
@@ -348,6 +349,13 @@ export function renderSession(root, ctx) {
 
   function renderCourts() {
     clear(courtsZone);
+
+    if (pendingScores.size > 0) {
+      const confirmBtn = el('button', { 'data-action': 'confirm-round', type: 'button' }, 'Confirm round');
+      confirmBtn.addEventListener('click', confirmRound);
+      courtsZone.appendChild(confirmBtn);
+    }
+
     const courts = ctx.state.activeSession.courts;
     courts.forEach((court, i) => {
       const card = el('article', { 'data-court': String(i) });
@@ -373,7 +381,41 @@ export function renderSession(root, ctx) {
     });
   }
 
+  function confirmRound() {
+    let session = ctx.state.activeSession;
+    const scoredCourts = Array.from(pendingScores.entries()).sort((a, b) => a[0] - b[0]);
+
+    for (const [courtIndex, { scoreA, scoreB }] of scoredCourts) {
+      session = recordGame(session, courtIndex, scoreA, scoreB, {
+        now: ctx.now,
+        idGen: ctx.idGen,
+      });
+    }
+
+    session = fillCourtsSmartly(session, { rng: ctx.rng });
+    ctx.state.activeSession = session;
+    pendingScores.clear();
+    ctx.persist();
+    refresh();
+  }
+
   function renderScoreForm(courtIndex) {
+    const pending = pendingScores.get(courtIndex);
+
+    if (pending) {
+      const div = el('div', { 'data-score-pending': '' });
+      div.appendChild(
+        el('p', {}, `Score entered: ${pending.scoreA} – ${pending.scoreB}`),
+      );
+      const editBtn = el('button', { type: 'button' }, 'Edit');
+      editBtn.addEventListener('click', () => {
+        pendingScores.delete(courtIndex);
+        refresh();
+      });
+      div.appendChild(editBtn);
+      return div;
+    }
+
     const form = el('form', {
       'data-action': 'record-score',
       'data-court': String(courtIndex),
@@ -406,12 +448,7 @@ export function renderSession(root, ctx) {
         error.textContent = 'Scores must be non-negative integers and not equal.';
         return;
       }
-      const next = recordGame(ctx.state.activeSession, courtIndex, a, b, {
-        now: ctx.now,
-        idGen: ctx.idGen,
-      });
-      ctx.state.activeSession = fillCourts(next, { rng: ctx.rng });
-      ctx.persist();
+      pendingScores.set(courtIndex, { scoreA: a, scoreB: b });
       refresh();
     });
     return form;
