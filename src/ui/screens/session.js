@@ -3,7 +3,7 @@
 // every other zone here, is rebuilt on each refresh so a rename or
 // banner change shows up everywhere it needs to.
 
-import { fillCourts } from '../../logic/queue.js';
+import { fillCourts, substitutePlayer } from '../../logic/queue.js';
 import { recordGame, validateScore } from '../../logic/rating.js';
 import { buildLeaderboard } from '../../logic/leaderboard.js';
 import {
@@ -37,8 +37,15 @@ export function renderSession(root, ctx) {
   const rosterBar = el('section', { 'data-zone': 'roster-bar' });
   screen.appendChild(rosterBar);
 
+  const modalOverlay = el('div', { 'data-modal-overlay': '' });
+  const modal = el('div', { 'data-modal': 'substitute' });
+  modalOverlay.appendChild(modal);
+  screen.appendChild(modalOverlay);
+
   let activeTab = 'courts';
   let leaderboardSort = 'rating';
+  let modalCourtIndex = null;
+  let modalPlayerToRemove = null;
 
   function setTab(name) {
     activeTab = name;
@@ -233,6 +240,112 @@ export function renderSession(root, ctx) {
     return ctx.state.activeSession.players.find((p) => p.id === id);
   }
 
+  function getPlayersOnCourt(courtIndex) {
+    const court = ctx.state.activeSession.courts[courtIndex];
+    if (!court) return [];
+    return [...court.teamA, ...court.teamB];
+  }
+
+  function getAvailableSubstitutes() {
+    const session = ctx.state.activeSession;
+    const onCourt = new Set();
+    for (const c of session.courts) {
+      if (c) {
+        c.teamA.forEach((id) => onCourt.add(id));
+        c.teamB.forEach((id) => onCourt.add(id));
+      }
+    }
+    return session.queue.map((id) => playerById(id)).filter(Boolean);
+  }
+
+  function openSubstituteModal(courtIndex) {
+    modalCourtIndex = courtIndex;
+    modalPlayerToRemove = null;
+    renderSubstituteModal();
+    modalOverlay.classList.add('open');
+  }
+
+  function closeSubstituteModal() {
+    modalOverlay.classList.remove('open');
+  }
+
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      closeSubstituteModal();
+    }
+  });
+
+  function renderSubstituteModal() {
+    clear(modal);
+    if (modalCourtIndex === null) return;
+
+    const courtIndex = modalCourtIndex;
+    const onCourt = getPlayersOnCourt(courtIndex);
+    const available = getAvailableSubstitutes();
+
+    const div = el('div');
+
+    const title = el('h3', {}, 'Substitute player');
+    div.appendChild(title);
+
+    const removeGroup = el('fieldset');
+    removeGroup.appendChild(el('legend', {}, 'Player to remove:'));
+    for (const id of onCourt) {
+      const player = playerById(id);
+      const label = el('label');
+      const radio = el('input', {
+        type: 'radio',
+        name: 'remove',
+        value: id,
+      });
+      radio.addEventListener('change', () => {
+        modalPlayerToRemove = id;
+      });
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(player?.name ?? '?'));
+      removeGroup.appendChild(label);
+    }
+    div.appendChild(removeGroup);
+
+    const addGroup = el('fieldset');
+    addGroup.appendChild(el('legend', {}, 'Replacement:'));
+    const addSelect = el('select', { name: 'add' });
+    addSelect.appendChild(el('option', { value: '' }, '— Choose —'));
+    for (const player of available) {
+      addSelect.appendChild(el('option', { value: player.id }, player.name));
+    }
+    addGroup.appendChild(addSelect);
+    div.appendChild(addGroup);
+
+    const actions = el('div', { 'data-modal-actions': '' });
+    const confirm = el('button', { type: 'button' }, 'Substitute');
+    confirm.addEventListener('click', () => {
+      if (!modalPlayerToRemove) return;
+      const playerIdToAdd = addSelect.value;
+      if (!playerIdToAdd) return;
+      const next = substitutePlayer(
+        ctx.state.activeSession,
+        courtIndex,
+        modalPlayerToRemove,
+        playerIdToAdd,
+      );
+      if (next) {
+        ctx.state.activeSession = next;
+        ctx.persist();
+        closeSubstituteModal();
+        refresh();
+      }
+    });
+    actions.appendChild(confirm);
+
+    const cancel = el('button', { type: 'button' }, 'Cancel');
+    cancel.addEventListener('click', closeSubstituteModal);
+    actions.appendChild(cancel);
+
+    div.appendChild(actions);
+    modal.appendChild(div);
+  }
+
   function renderCourts() {
     clear(courtsZone);
     const courts = ctx.state.activeSession.courts;
@@ -247,6 +360,13 @@ export function renderSession(root, ctx) {
         teams.appendChild(el('span', { 'data-vs': '' }, ' vs '));
         teams.appendChild(renderTeam('B', court.teamB));
         card.appendChild(teams);
+
+        const actions = el('div', { 'data-court-actions': '' });
+        const substituteBtn = el('button', { type: 'button' }, 'Substitute');
+        substituteBtn.addEventListener('click', () => openSubstituteModal(i));
+        actions.appendChild(substituteBtn);
+        card.appendChild(actions);
+
         card.appendChild(renderScoreForm(i));
       }
       courtsZone.appendChild(card);

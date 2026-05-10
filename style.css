@@ -911,6 +911,60 @@ article[data-court] > :first-child {
   transform: translateX(4px);
 }
 
+[data-modal] h3 {
+  font-size: 1.2rem;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+[data-modal] fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+}
+
+[data-modal] legend {
+  font-weight: 600;
+  color: var(--text);
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+[data-modal] label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+[data-modal] input[type="radio"],
+[data-modal] input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+[data-modal] select {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+[data-modal-actions] {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+[data-modal-actions] button {
+  padding: 8px 16px;
+  font-size: 14px;
+  min-width: 80px;
+}
+
 /* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
   main {

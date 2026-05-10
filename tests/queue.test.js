@@ -4,6 +4,7 @@ import {
   startSession,
   fillCourts,
   freeCourt,
+  substitutePlayer,
 } from '../src/logic/queue.js';
 import { createPlayer } from '../src/logic/players.js';
 
@@ -120,5 +121,61 @@ describe('freeCourt', () => {
       players: ROSTER,
     };
     expect(freeCourt(session, 0)).toBe(session);
+  });
+});
+
+describe('substitutePlayer', () => {
+  it('swaps a player on court with one from the queue', () => {
+    const session = {
+      courts: [
+        { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] },
+        null,
+      ],
+      queue: ['id_5', 'id_6'],
+      players: ROSTER,
+    };
+    const next = substitutePlayer(session, 0, 'id_1', 'id_5');
+    expect(next.courts[0]).toEqual({
+      teamA: ['id_5', 'id_2'],
+      teamB: ['id_3', 'id_4'],
+    });
+    expect(next.queue).toEqual(['id_1', 'id_6']);
+  });
+
+  it('swaps a player from teamB', () => {
+    const session = {
+      courts: [{ teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] }],
+      queue: ['id_5'],
+      players: ROSTER,
+    };
+    const next = substitutePlayer(session, 0, 'id_4', 'id_5');
+    expect(next.courts[0]).toEqual({
+      teamA: ['id_1', 'id_2'],
+      teamB: ['id_3', 'id_5'],
+    });
+    expect(next.queue).toEqual(['id_4']);
+  });
+
+  it('returns null if player is not on the court', () => {
+    const session = {
+      courts: [{ teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] }],
+      queue: ['id_5'],
+      players: ROSTER,
+    };
+    const next = substitutePlayer(session, 0, 'id_9', 'id_5');
+    expect(next).toBeNull();
+  });
+
+  it('returns null if replacement is not available', () => {
+    const session = {
+      courts: [
+        { teamA: ['id_1', 'id_2'], teamB: ['id_3', 'id_4'] },
+        null,
+      ],
+      queue: ['id_5'],
+      players: ROSTER,
+    };
+    const next = substitutePlayer(session, 0, 'id_1', 'id_3');
+    expect(next).toBeNull();
   });
 });

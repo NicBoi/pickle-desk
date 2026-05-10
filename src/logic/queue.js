@@ -60,3 +60,30 @@ export function freeCourt(session, courtIndex) {
     queue: [...session.queue, ...playersOnCourt],
   };
 }
+
+export function substitutePlayer(session, courtIndex, playerIdToRemove, playerIdToAdd) {
+  const court = session.courts[courtIndex];
+  if (!court) return null;
+
+  const onTeamA = court.teamA.includes(playerIdToRemove);
+  const onTeamB = court.teamB.includes(playerIdToRemove);
+  if (!onTeamA && !onTeamB) return null;
+
+  const inQueue = session.queue.includes(playerIdToAdd);
+  if (!inQueue) return null;
+
+  const newTeamA = onTeamA
+    ? court.teamA.map((id) => (id === playerIdToRemove ? playerIdToAdd : id))
+    : court.teamA;
+  const newTeamB = onTeamB
+    ? court.teamB.map((id) => (id === playerIdToRemove ? playerIdToAdd : id))
+    : court.teamB;
+  const newCourt = { teamA: newTeamA, teamB: newTeamB };
+  const newQueue = session.queue.map((id) => (id === playerIdToAdd ? playerIdToRemove : id));
+
+  return {
+    ...session,
+    courts: session.courts.map((c, i) => (i === courtIndex ? newCourt : c)),
+    queue: newQueue,
+  };
+}
